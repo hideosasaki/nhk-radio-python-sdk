@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, Callable
+from datetime import datetime, timezone
 
 import aiohttp
 
@@ -24,6 +25,9 @@ from .nowonair import fetch_now_on_air
 from .ondemand import fetch_new_arrivals, fetch_series
 
 _LOGGER = logging.getLogger(__name__)
+
+_REFRESH_DELAY = 60  # Seconds to wait before fetching updated following info
+_FALLBACK_DELAY = 3600  # Seconds to wait when following is unavailable
 
 
 class NhkRadioClient:
@@ -125,47 +129,100 @@ class NhkRadioClient:
         area = get_area(config, self._area)
         return await fetch_now_on_air(self._session, area.areakey)
 
-    async def listen_now_on_air(
+    async def on_program_change(
         self,
         channel_id: str | None = None,
-        *,
-        interval: float = 60.0,
     ) -> AsyncGenerator[NowOnAirInfo, None]:
         """Yield NowOnAirInfo whenever the current program changes.
 
+        Instead of polling at a fixed interval, this method sleeps until the
+        current program's end time and then yields the previously fetched
+        ``following`` program.  An API call is made shortly after each
+        transition to refresh the next ``following`` info.
+
         Args:
             channel_id: Listen to a specific channel, or None for all.
-            interval: Polling interval in seconds (default: 60).
 
         Yields:
-            NowOnAirInfo each time the present program changes
-            (detected by event_id change).
+            NowOnAirInfo each time the present program changes.
         """
-        # Resolve areakey once before the loop to avoid repeated config lookups.
         config = await self._ensure_config()
         areakey = get_area(config, self._area).areakey
 
         last_event_ids: dict[str, str] = {}
+        # Cache: channel_id -> (present NowOnAirInfo, following NowOnAirProgram | None)
+        cache: dict[str, NowOnAirInfo] = {}
 
         while True:
+            # --- Fetch phase: get current info from API ---
             try:
                 all_info = await fetch_now_on_air(self._session, areakey)
             except NhkRadioError as exc:
                 _LOGGER.warning("Failed to fetch now-on-air info: %s", exc)
-                await asyncio.sleep(interval)
+                await asyncio.sleep(_REFRESH_DELAY)
                 continue
 
             if channel_id is not None:
-                targets = [all_info[channel_id]] if channel_id in all_info else []
+                targets = {channel_id: all_info[channel_id]} if channel_id in all_info else {}
             else:
-                targets = list(all_info.values())
+                targets = all_info
 
-            for info in targets:
+            for ch_id, info in targets.items():
+                cache[ch_id] = info
                 current_id = info.present.event_id
-                prev_id = last_event_ids.get(info.channel_id)
-                if prev_id != current_id:
-                    last_event_ids[info.channel_id] = current_id
+                if last_event_ids.get(ch_id) != current_id:
+                    last_event_ids[ch_id] = current_id
                     yield info
 
-            await asyncio.sleep(interval)
+            # --- Sleep phase: wait until the earliest program ends ---
+            earliest_end = self._earliest_end_at(cache)
+            if earliest_end is None:
+                await asyncio.sleep(_FALLBACK_DELAY)
+                continue
+
+            delay = (earliest_end - datetime.now(timezone.utc)).total_seconds()
+            if delay > 0:
+                await asyncio.sleep(delay)
+
+            # --- Transition phase: yield cached following programs ---
+            new_cache: dict[str, NowOnAirInfo] = {}
+            for ch_id, info in cache.items():
+                end_at = datetime.fromisoformat(info.present.end_at)
+                if end_at > datetime.now(timezone.utc):
+                    # This channel's program hasn't ended yet
+                    new_cache[ch_id] = info
+                    continue
+
+                if info.following is None:
+                    # No following info; will be refreshed on next API call
+                    continue
+
+                transitioned = NowOnAirInfo(
+                    channel_id=info.channel_id,
+                    channel_name=info.channel_name,
+                    previous=info.present,
+                    present=info.following,
+                    following=None,
+                )
+                new_cache[ch_id] = transitioned
+                last_event_ids[ch_id] = transitioned.present.event_id
+                yield transitioned
+
+            cache = new_cache
+
+            # Wait before refreshing following info from API
+            await asyncio.sleep(_REFRESH_DELAY)
+
+    @staticmethod
+    def _earliest_end_at(cache: dict[str, NowOnAirInfo]) -> datetime | None:
+        """Return the earliest present.end_at across cached channels."""
+        earliest: datetime | None = None
+        for info in cache.values():
+            try:
+                end_at = datetime.fromisoformat(info.present.end_at)
+            except (ValueError, TypeError):
+                continue
+            if earliest is None or end_at < earliest:
+                earliest = end_at
+        return earliest
 

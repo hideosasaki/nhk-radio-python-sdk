@@ -7,9 +7,8 @@ NHKラジオ（らじる★らじる）の配信URL取得のための非同期Py
 - **ライブストリーム** — 地域・チャンネル指定でHLS配信URLを取得
 - **放送中の番組情報** — 現在放送中の番組名・出演者・サムネイル等を取得、番組切り替わり通知
 - **聞き逃し（オンデマンド）** — 番組の聞き逃し配信を検索・再生URLを取得
-- **共通インターフェイス** — ライブ・オンデマンドの番組情報を `Program` Protocol で統一的に扱える
 
-チャンネル構成は `config_web.xml` から動的に検出するため、NHKのチャンネル変更（R2廃止等）にも自動対応します。
+チャンネル構成は `config_web.xml` から動的に検出するため、NHKのチャンネル変更（R2廃止等）にも自動対応できるかもしれません。
 
 ## インストール
 
@@ -115,22 +114,21 @@ if r1.following:
     print(f"次の番組: {r1.following.title}")
 ```
 
-#### `listen_now_on_air(channel_id: str | None = None, *, interval: float = 60.0) -> AsyncGenerator[NowOnAirInfo]`
+#### `on_program_change(channel_id: str | None = None) -> AsyncGenerator[NowOnAirInfo]`
 
 番組が変わるたびに通知する async iterator です。停止するには `asyncio.Task.cancel()` を使います。
 
 | パラメータ | 型 | デフォルト | 説明 |
 |---|---|---|---|
 | `channel_id` | `str \| None` | `None` | 監視するチャンネル（`None` で全チャンネル） |
-| `interval` | `float` | `60.0` | ポーリング間隔（秒） |
 
 ```python
-# 全チャンネルを監視（60秒間隔でポーリング）
-async for info in client.listen_now_on_air(interval=60):
+# 全チャンネルを監視
+async for info in client.on_program_change():
     print(f"番組が変わりました: [{info.channel_name}] {info.present.title}")
 
 # 特定チャンネルのみ監視
-async for info in client.listen_now_on_air(channel_id="fm", interval=30):
+async for info in client.on_program_change(channel_id="fm"):
     print(f"FM: {info.present.title}")
 ```
 
@@ -206,7 +204,7 @@ await client.refresh_config()
 
 #### `Program` (Protocol)
 
-ライブ番組（`NowOnAirProgram`）とオンデマンドエピソード（`OndemandEpisode`）の共通インターフェイス。統一的に扱えます。
+ライブ番組（`NowOnAirProgram`）とオンデマンドエピソード（`OndemandEpisode`）の共通インターフェイス。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
