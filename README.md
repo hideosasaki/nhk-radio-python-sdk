@@ -5,7 +5,9 @@ NHKラジオ（らじる★らじる）の配信URL取得のための非同期Py
 ## 機能
 
 - **ライブストリーム** — 地域・チャンネル指定でHLS配信URLを取得
+- **放送中の番組情報** — 現在放送中の番組名・出演者・サムネイル等を取得、番組切り替わり通知
 - **聞き逃し（オンデマンド）** — 番組の聞き逃し配信を検索・再生URLを取得
+- **共通インターフェイス** — ライブ・オンデマンドの番組情報を `Program` Protocol で統一的に扱える
 
 チャンネル構成は `config_web.xml` から動的に検出するため、NHKのチャンネル変更（R2廃止等）にも自動対応します。
 
@@ -60,6 +62,42 @@ for area in areas:
 ```
 
 利用可能な地域: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`
+
+### 放送中の番組情報（Now On Air）
+
+```python
+# 全チャンネルの現在放送中の番組を取得
+now = await client.get_now_on_air()
+for channel_id, info in now.items():
+    program = info.present
+    print(f"[{info.channel_name}] {program.title}")
+    print(f"  シリーズ: {program.series_name}")
+    print(f"  出演: {program.act}")
+    print(f"  {program.start_at} 〜 {program.end_at}")
+
+# 前後の番組も取得可能
+r1 = now["r1"]
+if r1.previous:
+    print(f"前の番組: {r1.previous.title}")
+if r1.following:
+    print(f"次の番組: {r1.following.title}")
+```
+
+#### 番組の切り替わりを監視
+
+`watch_now_on_air()` は番組が変わるたびに通知する async iterator です。
+
+```python
+# 全チャンネルを監視（60秒間隔でポーリング）
+async for info in client.watch_now_on_air(interval=60):
+    print(f"番組が変わりました: [{info.channel_name}] {info.present.title}")
+
+# 特定チャンネルのみ監視
+async for info in client.watch_now_on_air(channel_id="fm", interval=30):
+    print(f"FM: {info.present.title}")
+```
+
+停止するには `asyncio.Task.cancel()` を使います。
 
 ### 聞き逃し（オンデマンド）
 
@@ -120,6 +158,29 @@ async def async_setup_entry(hass, entry):
     client = NhkRadioClient(session, area=entry.data["area"])
     # client を使って media_player エンティティを構築
 ```
+
+### 共通インターフェイス（Program Protocol）
+
+ライブ番組（`NowOnAirProgram`）とオンデマンドエピソード（`OndemandEpisode`）は共通の `Program` Protocol を実装しており、統一的に扱えます。
+
+```python
+from nhk_radio import Program
+
+def show_program(p: Program) -> None:
+    print(f"{p.series_name}: {p.title}")
+    print(f"  出演: {p.act}")
+    print(f"  サムネイル: {p.thumbnail_url}")
+
+# ライブ番組
+now = await client.get_now_on_air()
+show_program(now["r1"].present)
+
+# オンデマンドエピソード
+detail = await client.get_ondemand_series(site_id, corner_site_id)
+show_program(detail.episodes[0])
+```
+
+共通フィールド: `title`, `description`, `thumbnail_url`, `series_name`, `act`
 
 ## エラーハンドリング
 

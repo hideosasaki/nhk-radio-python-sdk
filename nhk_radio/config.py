@@ -47,6 +47,8 @@ def parse_config(xml_bytes: bytes) -> RadiruConfig:
         area_id = (data_el.findtext("area") or "").strip()
         area_name = (data_el.findtext("areajp") or "").strip()
 
+        areakey = (data_el.findtext("areakey") or "").strip()
+
         if not area_id:
             continue
 
@@ -67,6 +69,7 @@ def parse_config(xml_bytes: bytes) -> RadiruConfig:
         areas[area_id] = Area(
             id=area_id,
             name=area_name,
+            areakey=areakey,
             channels=channels,
         )
 

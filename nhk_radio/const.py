@@ -7,5 +7,6 @@ ONDEMAND_NEW_ARRIVALS_URL = (
 ONDEMAND_SERIES_URL = (
     "https://www.nhk.or.jp/radio-api/app/v1/web/ondemand/series"
 )
+NOA_API_URL = "https://api.nhk.jp/r7/pg/now/radio/{areakey}/now.json"
 DEFAULT_AREA = "tokyo"
 REQUEST_TIMEOUT = 10  # seconds

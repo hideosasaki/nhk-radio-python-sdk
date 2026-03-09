@@ -12,10 +12,13 @@ from .errors import (
 from .models import (
     Area,
     Channel,
+    NowOnAirInfo,
+    NowOnAirProgram,
     OndemandCorner,
     OndemandEpisode,
     OndemandSeries,
     OndemandSeriesDetail,
+    Program,
 )
 
 __all__ = [
@@ -28,8 +31,11 @@ __all__ = [
     "NetworkError",
     "NhkRadioClient",
     "NhkRadioError",
+    "NowOnAirInfo",
+    "NowOnAirProgram",
     "OndemandCorner",
     "OndemandEpisode",
     "OndemandSeries",
     "OndemandSeriesDetail",
+    "Program",
 ]

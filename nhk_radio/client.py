@@ -2,22 +2,28 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+import logging
+from collections.abc import AsyncGenerator, Callable
 
 import aiohttp
 
 from .config import RadiruConfig, fetch_config
 from .const import DEFAULT_AREA
-from .errors import ConfigFetchError
-from .live import get_areas as _get_areas
+from .errors import ConfigFetchError, NhkRadioError
+from .live import get_area, get_areas as _get_areas
 from .live import get_channels_for_area, get_stream_url
 from .models import (
     Area,
     Channel,
+    NowOnAirInfo,
     OndemandSeries,
     OndemandSeriesDetail,
 )
+from .nowonair import fetch_now_on_air
 from .ondemand import fetch_new_arrivals, fetch_series
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class NhkRadioClient:
@@ -107,4 +113,59 @@ class NhkRadioClient:
     ) -> OndemandSeriesDetail:
         """Return episodes for a specific on-demand series corner."""
         return await fetch_series(self._session, site_id, corner_site_id)
+
+    # --- Now on air (NOA) ---
+
+    async def get_now_on_air(self) -> dict[str, NowOnAirInfo]:
+        """Return now-on-air program info for all channels.
+
+        Keys are SDK channel ids ("r1", "r2", "fm").
+        """
+        config = await self._ensure_config()
+        area = get_area(config, self._area)
+        return await fetch_now_on_air(self._session, area.areakey)
+
+    async def watch_now_on_air(
+        self,
+        channel_id: str | None = None,
+        *,
+        interval: float = 60.0,
+    ) -> AsyncGenerator[NowOnAirInfo, None]:
+        """Yield NowOnAirInfo whenever the current program changes.
+
+        Args:
+            channel_id: Watch a specific channel, or None for all.
+            interval: Polling interval in seconds (default: 60).
+
+        Yields:
+            NowOnAirInfo each time the present program changes
+            (detected by event_id change).
+        """
+        # Resolve areakey once before the loop to avoid repeated config lookups.
+        config = await self._ensure_config()
+        areakey = get_area(config, self._area).areakey
+
+        last_event_ids: dict[str, str] = {}
+
+        while True:
+            try:
+                all_info = await fetch_now_on_air(self._session, areakey)
+            except NhkRadioError as exc:
+                _LOGGER.warning("Failed to fetch now-on-air info: %s", exc)
+                await asyncio.sleep(interval)
+                continue
+
+            if channel_id is not None:
+                targets = [all_info[channel_id]] if channel_id in all_info else []
+            else:
+                targets = list(all_info.values())
+
+            for info in targets:
+                current_id = info.present.event_id
+                prev_id = last_event_ids.get(info.channel_id)
+                if prev_id != current_id:
+                    last_event_ids[info.channel_id] = current_id
+                    yield info
+
+            await asyncio.sleep(interval)
 

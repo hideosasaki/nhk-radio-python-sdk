@@ -59,6 +59,10 @@ def test_parse_series_detail_episode_fields(series_detail_json: dict) -> None:
     assert ep.description is not None
     assert ep.onair_date
     assert ep.closed_at
+    # Fields inherited from parent
+    assert ep.thumbnail_url == result.thumbnail_url
+    assert ep.series_name == result.series_title
+    assert ep.act is not None
 
 
 def test_parse_new_arrivals_channel_filter(new_arrivals_json: dict) -> None:
