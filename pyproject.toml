@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nhk-radio-python-sdk"
+name = "nhk-radio-python"
 version = "0.1.0"
-description = "Async Python SDK for NHK Radio (らじる★らじる) streaming"
+description = "Async Python client for NHK Radio (らじる★らじる) streaming"
 license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [

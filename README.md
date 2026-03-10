@@ -1,6 +1,6 @@
-# nhk-radio-python-sdk
+# nhk-radio-python
 
-NHKラジオ（らじる★らじる）の配信URL取得のための非同期Python SDK。
+NHKラジオ（らじる★らじる）の配信URL取得のための非同期Pythonクライアント。
 
 ## 機能
 
@@ -13,14 +13,14 @@ NHKラジオ（らじる★らじる）の配信URL取得のための非同期Py
 ## インストール
 
 ```bash
-pip install nhk-radio-python-sdk
+pip install nhk-radio-python
 ```
 
 または開発用:
 
 ```bash
-git clone https://github.com/hideosasaki/nhk-radio-python-sdk.git
-cd nhk-radio-python-sdk
+git clone https://github.com/hideosasaki/nhk-radio-python.git
+cd nhk-radio-python
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -368,13 +368,13 @@ except AreaNotFoundError as e:
     # 指定した地域が存在しない
     print(f"利用可能: {e.available}")
 except NhkRadioError:
-    # その他のSDKエラー
+    # その他のエラー
     pass
 ```
 
 ## Home Assistant での利用
 
-このSDKは Home Assistant Custom Integration から利用することを想定しています。
+このライブラリは Home Assistant Custom Integration から利用することを想定しています。
 
 ```python
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
