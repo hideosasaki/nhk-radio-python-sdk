@@ -11,12 +11,25 @@ from nhk_radio.const import NOA_API_URL
 from nhk_radio.errors import ApiError, AreaNotFoundError, NetworkError
 from nhk_radio.live import (
     fetch_live_programs,
+    get_area,
     get_areas,
     get_channels_for_area,
     parse_live_programs,
 )
+from nhk_radio.models import Area, Channel
 
 JST = timezone(timedelta(hours=9))
+
+_STUB_AREA = Area(
+    id="tokyo",
+    name="東京",
+    areakey="130",
+    channels=[
+        Channel(id="r1", name="R1", stream_url=""),
+        Channel(id="r2", name="R2", stream_url=""),
+        Channel(id="fm", name="FM", stream_url=""),
+    ],
+)
 
 
 @pytest.fixture
@@ -54,21 +67,21 @@ def test_parse_live_programs_r3_mapped_to_fm(
     live_programs_json: dict,
 ) -> None:
     """r3 in API response should be mapped to 'fm' in SDK."""
-    result = parse_live_programs(live_programs_json)
+    result = parse_live_programs(live_programs_json, _STUB_AREA)
 
     assert len(result) == 3
     assert set(result.keys()) == {"r1", "r2", "fm"}
 
     fm = result["fm"]
-    assert fm.channel_id == "fm"
-    assert fm.channel_name == "NHK FM放送"
+    assert fm.channel.id == "fm"
+    assert fm.area.id == "tokyo"
     assert fm.present.channel_id == "fm"
 
 
 def test_parse_live_programs_present(
     live_programs_json: dict,
 ) -> None:
-    result = parse_live_programs(live_programs_json)
+    result = parse_live_programs(live_programs_json, _STUB_AREA)
 
     r1 = result["r1"]
     assert r1.present.title == "野村萬斎のラジオで福袋【ゲスト】中村壱太郎パート２"
@@ -85,7 +98,7 @@ def test_parse_live_programs_present(
 def test_parse_live_programs_previous_following(
     live_programs_json: dict,
 ) -> None:
-    result = parse_live_programs(live_programs_json)
+    result = parse_live_programs(live_programs_json, _STUB_AREA)
 
     r1 = result["r1"]
     assert r1.previous is not None
@@ -97,7 +110,7 @@ def test_parse_live_programs_previous_following(
 def test_parse_live_programs_nullable_previous_following(
     live_programs_json: dict,
 ) -> None:
-    result = parse_live_programs(live_programs_json)
+    result = parse_live_programs(live_programs_json, _STUB_AREA)
 
     r2 = result["r2"]
     assert r2.previous is None
@@ -128,12 +141,12 @@ def test_parse_live_programs_thumbnail_none_when_missing() -> None:
             "publishedOn": {"name": "Test Channel"},
         }
     }
-    result = parse_live_programs(data)
+    result = parse_live_programs(data, _STUB_AREA)
     assert result["r1"].present.thumbnail_url is None
 
 
 def test_parse_live_programs_empty() -> None:
-    result = parse_live_programs({})
+    result = parse_live_programs({}, _STUB_AREA)
     assert result == {}
 
 
@@ -146,7 +159,7 @@ def test_parse_live_programs_skips_missing_present() -> None:
             "publishedOn": {"name": "Test"},
         }
     }
-    result = parse_live_programs(data)
+    result = parse_live_programs(data, _STUB_AREA)
     assert result == {}
 
 
@@ -160,7 +173,7 @@ async def test_fetch_live_programs_http_error() -> None:
         m.get(url, status=500)
         async with aiohttp.ClientSession() as session:
             with pytest.raises(ApiError):
-                await fetch_live_programs(session, "130")
+                await fetch_live_programs(session, _STUB_AREA)
 
 
 @pytest.mark.asyncio
@@ -170,4 +183,4 @@ async def test_fetch_live_programs_network_error() -> None:
         m.get(url, exception=aiohttp.ClientError("timeout"))
         async with aiohttp.ClientSession() as session:
             with pytest.raises(NetworkError):
-                await fetch_live_programs(session, "130")
+                await fetch_live_programs(session, _STUB_AREA)

@@ -88,8 +88,8 @@ class OndemandProgram(RadioProgram):
 class LiveInfo:
     """Live broadcast info for a single channel (previous/present/following)."""
 
-    channel_id: str
-    channel_name: str
+    channel: Channel
+    area: Area
     previous: LiveProgram | None
     present: LiveProgram
     following: LiveProgram | None

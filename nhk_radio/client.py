@@ -164,17 +164,13 @@ class NhkRadioClient:
         """
         config = await self._ensure_config()
         area = get_area(config, self._area)
-        result = await fetch_live_programs(self._session, area.areakey)
+        result = await fetch_live_programs(self._session, area)
 
         # Inject stream_url from config into each LiveProgram.
         for ch_id, info in result.items():
-            channel = area.get_channel(ch_id)
-            if channel is None:
-                continue
-            url = channel.stream_url
-            result[ch_id] = LiveInfo(
-                channel_id=info.channel_id,
-                channel_name=info.channel_name,
+            url = info.channel.stream_url
+            result[ch_id] = replace(
+                info,
                 previous=(
                     replace(info.previous, stream_url=url)
                     if info.previous
@@ -208,7 +204,7 @@ class NhkRadioClient:
             LiveInfo each time the present program changes.
         """
         config = await self._ensure_config()
-        areakey = get_area(config, self._area).areakey
+        area = get_area(config, self._area)
 
         last_event_ids: dict[str, str] = {}
         cache: dict[str, LiveInfo] = {}
@@ -216,7 +212,7 @@ class NhkRadioClient:
         while True:
             # --- Fetch phase: get current info from API ---
             try:
-                all_info = await fetch_live_programs(self._session, areakey)
+                all_info = await fetch_live_programs(self._session, area)
             except NhkRadioError as exc:
                 _LOGGER.warning("Failed to fetch live programs: %s", exc)
                 await asyncio.sleep(_REFRESH_DELAY)
@@ -259,9 +255,8 @@ class NhkRadioClient:
                 if info.following is None:
                     continue
 
-                transitioned = LiveInfo(
-                    channel_id=info.channel_id,
-                    channel_name=info.channel_name,
+                transitioned = replace(
+                    info,
                     previous=info.present,
                     present=info.following,
                     following=None,

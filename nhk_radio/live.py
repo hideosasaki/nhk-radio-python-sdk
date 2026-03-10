@@ -50,15 +50,15 @@ def get_channels_for_area(config: RadiruConfig, area_id: str) -> list[Channel]:
 
 async def fetch_live_programs(
     session: aiohttp.ClientSession,
-    areakey: str,
+    area: Area,
 ) -> dict[str, LiveInfo]:
     """Fetch live program info for all channels in an area."""
-    url = NOA_API_URL.format(areakey=areakey)
+    url = NOA_API_URL.format(areakey=area.areakey)
     data = await api_get_json(session, url)
-    return parse_live_programs(data)
+    return parse_live_programs(data, area)
 
 
-def parse_live_programs(data: dict[str, Any]) -> dict[str, LiveInfo]:
+def parse_live_programs(data: dict[str, Any], area: Area) -> dict[str, LiveInfo]:
     """Parse the full NOA JSON response."""
     result: dict[str, LiveInfo] = {}
 
@@ -66,9 +66,6 @@ def parse_live_programs(data: dict[str, Any]) -> dict[str, LiveInfo]:
         channel_data = data.get(noa_key)
         if channel_data is None:
             continue
-
-        published_on = channel_data.get("publishedOn", {})
-        channel_name = published_on.get("name", "")
 
         present_data = channel_data.get("present")
         if present_data is None:
@@ -78,9 +75,13 @@ def parse_live_programs(data: dict[str, Any]) -> dict[str, LiveInfo]:
         if present is None:
             continue
 
+        channel = area.get_channel(sdk_channel_id)
+        if channel is None:
+            continue
+
         result[sdk_channel_id] = LiveInfo(
-            channel_id=sdk_channel_id,
-            channel_name=channel_name,
+            channel=channel,
+            area=area,
             previous=_parse_live_program(
                 channel_data.get("previous"), sdk_channel_id
             ),
