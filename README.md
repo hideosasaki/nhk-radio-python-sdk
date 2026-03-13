@@ -204,7 +204,7 @@ from datetime import date
 today = await client.get_ondemand_by_date(date(2026, 3, 10))
 ```
 
-#### `get_ondemand_programs(series_site_id: str, corner_site_id: str) -> tuple[OndemandSeries, list[OndemandProgram]]`
+#### `get_ondemand_programs(series_site_id: str, corner_site_id: str) -> tuple[OndemandSeries, list[OndemandEpisode]]`
 
 番組のシリーズ情報とエピソード一覧を取得します。
 
@@ -239,7 +239,7 @@ await client.refresh()
 
 #### `Program` (Protocol)
 
-すべての番組モデルの共通インターフェイス。`LiveProgram`、`OndemandProgram`、`OndemandSeries` が実装します。
+すべての番組モデルの共通インターフェイス。`LiveProgram`、`OndemandEpisode`、`OndemandSeries` が実装します。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -280,7 +280,7 @@ show_program(episodes[0])
 |---|---|---|
 | `event_id` | `str` | 放送イベントID |
 
-#### `OndemandProgram` (extends `RadioProgram`)
+#### `OndemandEpisode` (extends `RadioProgram`)
 
 聞き逃しエピソード。
 

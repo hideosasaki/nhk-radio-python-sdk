@@ -17,7 +17,7 @@ from .const import (
     ONDEMAND_SERIES_SEARCH_URL,
     ONDEMAND_SERIES_URL,
 )
-from .models import Genre, OndemandProgram, OndemandSeries
+from .models import Genre, OndemandEpisode, OndemandSeries
 
 # Regex to extract ISO 8601 start/end from aa_contents_id.
 # Example: "...;2026-03-09T17:00:03+09:00_2026-03-09T18:00:03+09:00"
@@ -43,7 +43,7 @@ async def fetch_ondemand_programs(
     session: aiohttp.ClientSession,
     series_site_id: str,
     corner_site_id: str,
-) -> tuple[OndemandSeries, list[OndemandProgram]]:
+) -> tuple[OndemandSeries, list[OndemandEpisode]]:
     """Fetch series info and episodes for a specific series corner."""
     params = {"site_id": series_site_id, "corner_site_id": corner_site_id}
     data = await api_get_json(session, ONDEMAND_SERIES_URL, params=params)
@@ -128,7 +128,7 @@ def parse_ondemand_programs(
     data: dict[str, Any],
     series_site_id: str = "",
     corner_site_id: str = "",
-) -> tuple[OndemandSeries, list[OndemandProgram]]:
+) -> tuple[OndemandSeries, list[OndemandEpisode]]:
     """Parse the series detail JSON response into series info and episodes."""
     series_title = data.get("title", "")
     thumbnail_url = data.get("thumbnail_url")
@@ -148,11 +148,11 @@ def parse_ondemand_programs(
         series_url=data.get("series_url") or None,
     )
 
-    programs: list[OndemandProgram] = []
+    programs: list[OndemandEpisode] = []
     for ep in data.get("episodes", []):
         start_at, end_at = _parse_aa_datetimes(ep.get("aa_contents_id", ""))
         programs.append(
-            OndemandProgram(
+            OndemandEpisode(
                 title=ep.get("program_title", ""),
                 description=ep.get("program_sub_title", ""),
                 thumbnail_url=thumbnail_url,

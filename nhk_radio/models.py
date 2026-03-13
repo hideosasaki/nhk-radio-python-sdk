@@ -77,7 +77,7 @@ class LiveProgram(RadioProgram):
 
 
 @dataclass(frozen=True, slots=True)
-class OndemandProgram(RadioProgram):
+class OndemandEpisode(RadioProgram):
     """An on-demand episode with a playable stream."""
 
     episode_id: str | None = None

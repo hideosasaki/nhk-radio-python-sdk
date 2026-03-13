@@ -21,7 +21,7 @@ from .models import (
     Genre,
     Kana,
     LiveInfo,
-    OndemandProgram,
+    OndemandEpisode,
     OndemandSeries,
 )
 from .ondemand import (
@@ -118,7 +118,7 @@ class NhkRadioClient:
 
     async def get_ondemand_programs(
         self, series_site_id: str, corner_site_id: str
-    ) -> tuple[OndemandSeries, list[OndemandProgram]]:
+    ) -> tuple[OndemandSeries, list[OndemandEpisode]]:
         """Return series info and episodes for a specific series corner."""
         return await fetch_ondemand_programs(
             self._session, series_site_id, corner_site_id
