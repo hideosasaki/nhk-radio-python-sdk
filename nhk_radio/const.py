@@ -1,5 +1,10 @@
 """Constants for the nhk_radio SDK."""
 
+from datetime import UTC, datetime
+
+# Sentinel for missing or invalid datetime fields.
+EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+
 CONFIG_URL = "https://www.nhk.or.jp/radio/config/config_web.xml"
 ONDEMAND_NEW_ARRIVALS_URL = (
     "https://www.nhk.or.jp/radio-api/app/v1/web/ondemand/corners/new_arrivals"

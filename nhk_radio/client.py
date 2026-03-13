@@ -74,7 +74,7 @@ class NhkRadioClient:
             self._config = await fetch_config(self._session)
         except ConfigFetchError:
             raise
-        except Exception as exc:
+        except (KeyError, AttributeError, TypeError) as exc:
             raise ConfigFetchError(f"Failed to load config: {exc}") from exc
 
     # --- Live streams ---
@@ -156,43 +156,14 @@ class NhkRadioClient:
 
     # --- Live programs ---
 
-    @staticmethod
-    def _inject_stream_url(info: LiveInfo) -> LiveInfo:
-        """Inject the channel's HLS stream URL into each LiveProgram.
-
-        The NOA API does not provide stream URLs, so they must be
-        filled in from the channel's config_web.xml data.
-        """
-        url = info.channel.stream_url
-        return replace(
-            info,
-            previous=(
-                replace(info.previous, stream_url=url)
-                if info.previous
-                else None
-            ),
-            present=replace(info.present, stream_url=url),
-            following=(
-                replace(info.following, stream_url=url)
-                if info.following
-                else None
-            ),
-        )
-
     async def get_live_programs(self) -> dict[str, LiveInfo]:
         """Return live program info for all channels.
 
         Keys are SDK channel ids ("r1", "r2", "fm").
-        LiveProgram instances have stream_url injected from config.
         """
         config = await self._ensure_config()
         area = get_area(config, self._area)
-        result = await fetch_live_programs(self._session, area)
-
-        for ch_id, info in result.items():
-            result[ch_id] = self._inject_stream_url(info)
-
-        return result
+        return await fetch_live_programs(self._session, area)
 
     async def on_live_program_change(
         self,
@@ -214,7 +185,7 @@ class NhkRadioClient:
         config = await self._ensure_config()
         area = get_area(config, self._area)
 
-        last_event_ids: dict[str, str] = {}
+        last_event_ids: dict[str, str | None] = {}
         cache: dict[str, LiveInfo] = {}
 
         while True:
@@ -236,7 +207,6 @@ class NhkRadioClient:
                 targets = all_info
 
             for ch_id, info in targets.items():
-                info = self._inject_stream_url(info)
                 cache[ch_id] = info
                 current_id = info.present.event_id
                 if last_event_ids.get(ch_id) != current_id:

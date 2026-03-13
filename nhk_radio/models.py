@@ -73,14 +73,14 @@ class RadioProgram:
 class LiveProgram(RadioProgram):
     """A live broadcast program."""
 
-    event_id: str = ""
+    event_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class OndemandProgram(RadioProgram):
     """An on-demand episode with a playable stream."""
 
-    episode_id: str = ""
+    episode_id: str | None = None
     closed_at: datetime | None = None
 
 
@@ -106,7 +106,7 @@ class OndemandSeries:
     series_name: str
     radio_broadcast: str
     corner_site_id: str
-    corner_name: str = ""
+    corner_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

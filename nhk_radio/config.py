@@ -97,5 +97,5 @@ async def fetch_config(session: aiohttp.ClientSession) -> RadiruConfig:
         return parse_config(xml_bytes)
     except ConfigFetchError:
         raise
-    except Exception as exc:
+    except (ET.ParseError, KeyError, AttributeError) as exc:
         raise ConfigFetchError(f"Failed to parse config XML: {exc}") from exc

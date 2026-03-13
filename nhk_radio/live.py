@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import aiohttp
 
 from ._api import api_get_json
 from .config import RadiruConfig
-from .const import NOA_API_URL
+from .const import EPOCH, NOA_API_URL
 from .errors import AreaNotFoundError
 from .models import Area, Channel, LiveInfo, LiveProgram
 
@@ -19,9 +19,6 @@ _NOA_CHANNEL_MAP: dict[str, str] = {
     "r2": "r2",
     "r3": "fm",
 }
-
-# Sentinel for missing or invalid datetime fields.
-_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 # --- Area / channel helpers ---
@@ -71,23 +68,25 @@ def parse_live_programs(data: dict[str, Any], area: Area) -> dict[str, LiveInfo]
         if present_data is None:
             continue
 
-        present = _parse_live_program(present_data, sdk_channel_id)
-        if present is None:
-            continue
-
         channel = area.get_channel(sdk_channel_id)
         if channel is None:
+            continue
+
+        stream_url = channel.stream_url
+
+        present = _parse_live_program(present_data, sdk_channel_id, stream_url)
+        if present is None:
             continue
 
         result[sdk_channel_id] = LiveInfo(
             channel=channel,
             area=area,
             previous=_parse_live_program(
-                channel_data.get("previous"), sdk_channel_id
+                channel_data.get("previous"), sdk_channel_id, stream_url
             ),
             present=present,
             following=_parse_live_program(
-                channel_data.get("following"), sdk_channel_id
+                channel_data.get("following"), sdk_channel_id, stream_url
             ),
         )
 
@@ -97,6 +96,7 @@ def parse_live_programs(data: dict[str, Any], area: Area) -> dict[str, LiveInfo]
 def _parse_live_program(
     data: dict[str, Any] | None,
     channel_id: str,
+    stream_url: str,
 ) -> LiveProgram | None:
     """Parse a single BroadcastEvent into LiveProgram."""
     if data is None:
@@ -116,18 +116,18 @@ def _parse_live_program(
         series_site_id=identifier.get("radioSeriesId", ""),
         act=about.get("description", ""),
         channel_id=channel_id,
-        stream_url="",
+        stream_url=stream_url,
         start_at=_parse_datetime(data.get("startDate", "")),
         end_at=_parse_datetime(data.get("endDate", "")),
-        event_id=identifier.get("broadcastEventId", ""),
+        event_id=identifier.get("broadcastEventId") or None,
     )
 
 
 def _parse_datetime(value: str) -> datetime:
     """Parse an ISO 8601 string, returning epoch on failure."""
     if not value:
-        return _EPOCH
+        return EPOCH
     try:
         return datetime.fromisoformat(value)
     except (ValueError, TypeError):
-        return _EPOCH
+        return EPOCH
