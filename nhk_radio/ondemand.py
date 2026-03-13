@@ -43,8 +43,8 @@ async def fetch_ondemand_programs(
     session: aiohttp.ClientSession,
     series_site_id: str,
     corner_site_id: str,
-) -> list[OndemandProgram]:
-    """Fetch episodes for a specific series corner."""
+) -> tuple[OndemandSeries, list[OndemandProgram]]:
+    """Fetch series info and episodes for a specific series corner."""
     params = {"site_id": series_site_id, "corner_site_id": corner_site_id}
     data = await api_get_json(session, ONDEMAND_SERIES_URL, params=params)
     return parse_ondemand_programs(data, series_site_id, corner_site_id)
@@ -128,11 +128,25 @@ def parse_ondemand_programs(
     data: dict[str, Any],
     series_site_id: str = "",
     corner_site_id: str = "",
-) -> list[OndemandProgram]:
-    """Parse the series detail JSON response into episodes."""
+) -> tuple[OndemandSeries, list[OndemandProgram]]:
+    """Parse the series detail JSON response into series info and episodes."""
     series_title = data.get("title", "")
     thumbnail_url = data.get("thumbnail_url")
     channel_id = data.get("channel_id", "")
+    resolved_site_id = series_site_id or data.get("series_site_id", "")
+
+    series = OndemandSeries(
+        title=series_title,
+        description=data.get("series_description", ""),
+        thumbnail_url=thumbnail_url,
+        series_site_id=resolved_site_id,
+        series_name=series_title,
+        radio_broadcast=data.get("radio_broadcast", ""),
+        corner_site_id=corner_site_id,
+        corner_name=data.get("corner_name") or None,
+        schedule=data.get("schedule") or None,
+        series_url=data.get("series_url") or None,
+    )
 
     programs: list[OndemandProgram] = []
     for ep in data.get("episodes", []):
@@ -143,7 +157,7 @@ def parse_ondemand_programs(
                 description=ep.get("program_sub_title", ""),
                 thumbnail_url=thumbnail_url,
                 series_name=series_title,
-                series_site_id=series_site_id or data.get("series_site_id", ""),
+                series_site_id=resolved_site_id,
                 act=ep.get("act", ""),
                 channel_id=channel_id,
                 stream_url=ep.get("stream_url", ""),
@@ -153,7 +167,7 @@ def parse_ondemand_programs(
                 closed_at=_parse_datetime(ep.get("closed_at", "")),
             )
         )
-    return programs
+    return series, programs
 
 
 def _parse_ondemand_items(items: list[dict[str, Any]]) -> list[OndemandSeries]:

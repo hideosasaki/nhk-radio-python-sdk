@@ -118,8 +118,8 @@ class NhkRadioClient:
 
     async def get_ondemand_programs(
         self, series_site_id: str, corner_site_id: str
-    ) -> list[OndemandProgram]:
-        """Return episodes for a specific on-demand series corner."""
+    ) -> tuple[OndemandSeries, list[OndemandProgram]]:
+        """Return series info and episodes for a specific series corner."""
         return await fetch_ondemand_programs(
             self._session, series_site_id, corner_site_id
         )

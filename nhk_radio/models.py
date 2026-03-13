@@ -107,6 +107,8 @@ class OndemandSeries:
     radio_broadcast: str
     corner_site_id: str
     corner_name: str | None = None
+    schedule: str | None = None
+    series_url: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

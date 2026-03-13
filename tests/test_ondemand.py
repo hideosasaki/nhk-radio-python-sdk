@@ -26,10 +26,17 @@ def test_parse_ondemand_new_arrivals(new_arrivals_json: dict) -> None:
 
 
 def test_parse_ondemand_programs(series_detail_json: dict) -> None:
-    result = parse_ondemand_programs(series_detail_json)
-    assert len(result) > 0
+    series, programs = parse_ondemand_programs(series_detail_json)
 
-    ep = result[0]
+    # Series info
+    assert series.title == "大相撲中継"
+    assert "NHK大相撲中継" in series.description
+    assert series.schedule is not None
+    assert series.series_url is not None
+
+    # Episodes
+    assert len(programs) > 0
+    ep = programs[0]
     assert ep.title
     assert ep.stream_url.endswith(".m3u8")
     assert ep.episode_id
@@ -47,8 +54,9 @@ def test_parse_ondemand_new_arrivals_empty() -> None:
 
 def test_parse_ondemand_programs_no_episodes() -> None:
     data = {"title": "Test", "corner_name": "", "episodes": []}
-    result = parse_ondemand_programs(data)
-    assert result == []
+    series, programs = parse_ondemand_programs(data)
+    assert series.title == "Test"
+    assert programs == []
 
 
 @pytest.mark.asyncio

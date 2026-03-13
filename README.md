@@ -204,15 +204,17 @@ from datetime import date
 today = await client.get_ondemand_by_date(date(2026, 3, 10))
 ```
 
-#### `get_ondemand_programs(series_site_id: str, corner_site_id: str) -> list[OndemandProgram]`
+#### `get_ondemand_programs(series_site_id: str, corner_site_id: str) -> tuple[OndemandSeries, list[OndemandProgram]]`
 
-番組のエピソード一覧と再生URLを取得します。
+番組のシリーズ情報とエピソード一覧を取得します。
 
 ```python
-episodes = await client.get_ondemand_programs(
+series, episodes = await client.get_ondemand_programs(
     series_site_id=series_list[0].series_site_id,
     corner_site_id=series_list[0].corner_site_id,
 )
+print(f"{series.title}: {series.description}")
+print(f"放送: {series.schedule}")
 for ep in episodes:
     print(f"  {ep.title}: {ep.stream_url}")
     print(f"  {ep.start_at} 〜 {ep.end_at}")
@@ -310,7 +312,9 @@ show_program(episodes[0])
 | `series_name` | `str` | シリーズ名 |
 | `radio_broadcast` | `str` | 放送チャンネル（例: `"R1"`, `"FM"`, `"R1,FM"`） |
 | `corner_site_id` | `str` | コーナーサイトID |
-| `corner_name` | `str` | コーナー名 |
+| `corner_name` | `str \| None` | コーナー名 |
+| `schedule` | `str \| None` | 放送スケジュール（例: `"FM 毎週土曜 午前7時20分"`） |
+| `series_url` | `str \| None` | NHK公式ページURL |
 
 #### `Genre`
 
