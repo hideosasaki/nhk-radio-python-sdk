@@ -105,13 +105,12 @@ def _parse_live_program(
     identifier = data.get("identifierGroup", {})
     about = data.get("about", {})
     part_of_series = about.get("partOfSeries", {})
-    logo = part_of_series.get("logo", {})
-    main_logo = logo.get("main", {})
+    eyecatch = part_of_series.get("eyecatch", {})
 
     return LiveProgram(
         title=data.get("name", ""),
         description=data.get("description", ""),
-        thumbnail_url=main_logo.get("url") or None,
+        thumbnail_url=eyecatch.get("medium", {}).get("url") or None,
         series_name=identifier.get("radioSeriesName", ""),
         series_site_id=identifier.get("radioSeriesId", ""),
         act=about.get("description", ""),

@@ -17,9 +17,9 @@
         "description": "",
         "partOfSeries": {
           "name": "ニュース",
-          "logo": {
-            "main": {
-              "url": "https://img.nhk.jp/static/assets/images/radioseries/rs/news-logo.png"
+          "eyecatch": {
+            "medium": {
+              "url": "https://img.nhk.jp/static/assets/images/radioseries/rs/news-eyecatch.jpg"
             }
           }
         }
@@ -42,9 +42,9 @@
         "description": "野村萬斎,【ゲスト】中村壱太郎",
         "partOfSeries": {
           "name": "野村萬斎のラジオで福袋",
-          "logo": {
-            "main": {
-              "url": "https://img.nhk.jp/static/assets/images/radioseriespack/rs/1K5J894M9V/logo.png"
+          "eyecatch": {
+            "medium": {
+              "url": "https://img.nhk.jp/static/assets/images/radioseriespack/rs/1K5J894M9V/eyecatch.jpg"
             }
           }
         }
@@ -67,7 +67,7 @@
         "description": "",
         "partOfSeries": {
           "name": "ニュース・気象情報",
-          "logo": {}
+          "eyecatch": {}
         }
       }
     },
@@ -95,9 +95,9 @@
         "description": "【講師】慶應義塾大学訪問教授…髙橋朝子,【きき手】坂井美月",
         "partOfSeries": {
           "name": "NHK高校講座 政治・経済",
-          "logo": {
-            "main": {
-              "url": "https://img.nhk.jp/static/assets/images/radioseries/rs/9VXV4QQY2L/logo.jpg"
+          "eyecatch": {
+            "medium": {
+              "url": "https://img.nhk.jp/static/assets/images/radioseries/rs/9VXV4QQY2L/eyecatch.jpg"
             }
           }
         }
@@ -128,9 +128,9 @@
         "description": "【曲目】弦楽五重奏曲第２番ト長調作品７７（ドボルザーク）",
         "partOfSeries": {
           "name": "ベストオブクラシック",
-          "logo": {
-            "main": {
-              "url": "https://img.nhk.jp/static/assets/images/radioseries/rs/Z9L1V2M24L/logo.jpg"
+          "eyecatch": {
+            "medium": {
+              "url": "https://img.nhk.jp/static/assets/images/radioseries/rs/Z9L1V2M24L/eyecatch.jpg"
             }
           }
         }
